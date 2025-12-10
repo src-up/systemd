@@ -1302,7 +1302,6 @@ foreach ident : [
         conf.set10('HAVE_' + ident.to_upper(), have_ident)
 endforeach
 
-
 conf.set10('HAVE_LIBCRYPTSETUP_PLUGINS',
            libcryptsetup_plugins.allowed() and
            conf.get('HAVE_CRYPT_ACTIVATE_BY_TOKEN_PIN') == 1 and

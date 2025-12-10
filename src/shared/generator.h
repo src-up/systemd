@@ -61,11 +61,6 @@ int generator_hook_up_growfs(
         const char *dir,
         const char *where,
         const char *target);
-int generator_hook_up_clone(
-                const char *dir,
-                const char *what,
-                const char *where,
-                const char *target);
 int generator_hook_up_pcrfs(
         const char *dir,
         const char *where,

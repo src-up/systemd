@@ -1,2 +1,0 @@
-/dev/mapper/myclone  /mnt/data  ext4  x-systemd.mount-clone=/dev/sda1:/dev/sdb1:/dev/sdc1  0 0
-
