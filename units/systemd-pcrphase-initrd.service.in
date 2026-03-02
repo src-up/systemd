@@ -23,3 +23,5 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart={{LIBEXECDIR}}/systemd-pcrextend --graceful enter-initrd
 ExecStop={{LIBEXECDIR}}/systemd-pcrextend --graceful leave-initrd
+# Extend PCR7 with leave-initrd only (no enter-initrd) to preserve existing PCR7-only sealed disks. See systemd#40567.
+ExecStopPost={{LIBEXECDIR}}/systemd-pcrextend --graceful --pcr=7 leave-initrd
