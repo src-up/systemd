@@ -814,6 +814,7 @@ int tpm2_context_new(const char *device, Tpm2Context **ret_context) {
 }
 
 int tpm2_context_new_or_warn(const char *device, Tpm2Context **ret_context) {
+        log_info("TRACE: %s:%d:%s()", __FILE__, __LINE__, __func__);
         int r;
 
         assert(ret_context);
@@ -6573,6 +6574,7 @@ static int tpm2_userspace_log(
                 Tpm2UserspaceEventType event_type,
                 const char *description) {
 
+        log_info("TRACE: %s:%d:%s()", __FILE__, __LINE__, __func__);
         _cleanup_(sd_json_variant_unrefp) sd_json_variant *v = NULL, *array = NULL;
         _cleanup_free_ char *f = NULL;
         sd_id128_t boot_id;
@@ -6656,6 +6658,11 @@ static int tpm2_userspace_log(
         if (r < 0)
                 return log_debug_errno(r, "Failed to write JSON data to log: %m");
 
+        if (pcr_index != UINT_MAX)
+                log_info("TPM measure: PCR %u %s", pcr_index, strempty(description));
+        else
+                log_info("TPM measure: NvPCR %s %s", strempty(nv_index_name), strempty(description));
+
         r = tpm2_userspace_log_clean(fd);
         if (r < 0)
                 return r;
@@ -6673,6 +6680,7 @@ int tpm2_pcr_extend_bytes(
                 Tpm2UserspaceEventType event_type,
                 const char *description) {
 
+        log_info("TRACE: %s:%d:%s()", __FILE__, __LINE__, __func__);
 #if HAVE_OPENSSL
         _cleanup_close_ int log_fd = -EBADF;
         TPML_DIGEST_VALUES values = {};
@@ -6718,8 +6726,12 @@ int tpm2_pcr_extend_bytes(
                 if (iovec_is_set(secret) > 0) {
                         if (!HMAC(implementation, secret->iov_base, secret->iov_len, data->iov_base, data->iov_len, (unsigned char*) &values.digests[values.count].digest, NULL))
                                 return log_debug_errno(SYNTHETIC_ERRNO(ENOTRECOVERABLE), "Failed to calculate HMAC of data to measure.");
-                } else if (EVP_Digest(data->iov_base, data->iov_len, (unsigned char*) &values.digests[values.count].digest, NULL, implementation, NULL) != 1)
+                } else {
+                    log_info("TRACE: before EVP_Digest (hashing data to measure)");
+                    if (EVP_Digest(data->iov_base, data->iov_len, (unsigned char*) &values.digests[values.count].digest, NULL, implementation, NULL) != 1)
                         return log_debug_errno(SYNTHETIC_ERRNO(ENOTRECOVERABLE), "Failed to hash data to measure.");
+                    log_info("TRACE: after EVP_Digest");
+                }
 
                 values.count++;
         }
@@ -6729,6 +6741,7 @@ int tpm2_pcr_extend_bytes(
         log_fd = tpm2_userspace_log_open();
 
         (void) tpm2_userspace_log_dirty(log_fd);
+        log_info("TRACE: before sym_Esys_PCR_Extend");
         rc = sym_Esys_PCR_Extend(
                         c->esys_context,
                         ESYS_TR_PCR0 + pcr_index,
@@ -6742,6 +6755,7 @@ int tpm2_pcr_extend_bytes(
                                 "Failed to measure into PCR %u: %s",
                                 pcr_index,
                                 sym_Tss2_RC_Decode(rc));
+        log_info("TRACE: after sym_Esys_PCR_Extend");
 
         /* Now, write what we just extended to the log, too. */
         (void) tpm2_userspace_log(

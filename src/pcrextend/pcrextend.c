@@ -23,6 +23,8 @@
 #include "varlink-io.systemd.PCRExtend.h"
 #include "varlink-util.h"
 
+#include "sd-login.h" /* sd_pid_get_unit */
+
 static bool arg_graceful = false;
 static char *arg_tpm2_device = NULL;
 static char **arg_banks = NULL;
@@ -80,6 +82,7 @@ static int help(int argc, char *argv[], void *userdata) {
 }
 
 static int parse_argv(int argc, char *argv[]) {
+        log_info("TRACE: %s:%d:%s()", __FILE__, __LINE__, __func__);
         enum {
                 ARG_VERSION = 0x100,
                 ARG_BANK,
@@ -236,6 +239,7 @@ static int parse_argv(int argc, char *argv[]) {
 }
 
 static int determine_banks(Tpm2Context *c, unsigned target_pcr_nr) {
+        log_info("TRACE: %s:%d:%s()", __FILE__, __LINE__, __func__);
         _cleanup_strv_free_ char **l = NULL;
         int r;
 
@@ -280,6 +284,7 @@ static int extend_pcr_now(
                 size_t size,
                 Tpm2UserspaceEventType event) {
 
+        log_info("TRACE: %s:%d:%s()", __FILE__, __LINE__, __func__);
         _cleanup_(tpm2_context_unrefp) Tpm2Context *c = NULL;
         int r;
 
@@ -464,7 +469,8 @@ static int vl_server(void) {
 }
 
 static int run(int argc, char *argv[]) {
-        _cleanup_free_ char *word = NULL;
+        log_info("TRACE: %s:%d:%s()", __FILE__, __LINE__, __func__);
+        _cleanup_free_ char *word = NULL, *unit = NULL;
         Tpm2UserspaceEventType event = _TPM2_USERSPACE_EVENT_TYPE_INVALID;
         int r;
 
@@ -473,6 +479,10 @@ static int run(int argc, char *argv[]) {
         r = parse_argv(argc, argv);
         if (r <= 0)
                 return r;
+
+        /* debugging code - print unit that called pcr extend */
+        r = sd_pid_get_unit(0, &unit);
+        log_info("TRACE: unit=%s", r >= 0 ? strna(unit) : "(unknown)");
 
         if (arg_varlink)
                 return vl_server(); /* Invocation as Varlink service */
